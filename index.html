@@ -60,13 +60,13 @@
         BUF(keccak256(BUF(ethers.solidityPacked(["bytes32", "uint256"], ["0x" + keccak256(initializer()), BigInt(IDV("salt"))])))),
         BUF(keccak256(BUF(ethers.solidityPacked(["bytes", "uint256"], [proxy_creation_code, BigInt(SafeL2)]))))
     ].reduce((a, v) => a.concat(...v), []))).slice(-40)
-    const connect = async (w3) => Promise.resolve(global.instance).then(async (I) => I ? I : (global.instance = await w3.connect())).then(async (I) => {
+    const connect = (w3) => Promise.resolve(global.instance).then(async (I) => I ? I : (global.instance = await w3.connect())).then((I) => {
         I.on("accountsChanged", ([_]) => (document.getElementById("currentAddress").innerText = _ ?? ""))
         I.on("chainChanged", _ => window.location.reload())
         I.on("disconnect", _ => (document.getElementById("currentAddress").innerText = ""))
         return new ethers.BrowserProvider(I).getSigner()
     }).then((s) => (global.signer = s).getAddress()).then((_) => (document.getElementById("currentAddress").innerText = _)).catch(console.log)
-    document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", () => {
         const web3Modal = new window.Web3Modal.default({ cacheProvider: true, subscribeProvider: true, providerOptions: { walletconnect: { package: WalletConnectProvider.default, options: { infuraId } } } })
         if (web3Modal.cachedProvider) connect(web3Modal)
         CLK("connectWallet", () => connect(web3Modal))
