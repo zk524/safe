@@ -1,25 +1,24 @@
 <button id="connectWallet">Connect Wallet</button>
 <span id="currentAddress"></span><br><br>
-<span>Owners (split by ',')</span><br>
-<input id="owners" value="" /><br>
-<span>Threshold</span><br>
-<input id="threshold" value="1" type="number" /><br>
-<span>SaltNonce(unit256)</span><br>
-<input id="salt" value="0" type="number" /><br>
+<span>Owners (split by ',')</span><br><input id="owners" value="" /><br>
+<span>Threshold</span><br><input id="threshold" value="1" type="number" /><br>
+<span>SaltNonce(unit256)</span><br><input id="salt" value="0" /><br>
 <button id="calcAddress">Calculate ProxyAddress</button>
 <button id="create1">Create By Wallet</button>
 <button id="create2">Create By RawTx</button><br>
 <span id="proxyAddress"></span><br>
-<span>ProxyNonce</span><br>
-<input id="proxyNonce" value="0" type="number" />
-<button id="getProxyNonce">get</button><br>
-<span>To</span><br>
-<input id="to" value="" /><br>
-<span>Value(Wei)</span><br>
-<input id="value" value="0" /><br>
-<span>Data</span><br>
-<input id="data" value="0x" /><br>
-<button id="signTx">Send(Sign)</button><br>
+<span>ProxyNonce</span><br><input id="proxyNonce" value="0" /><button id="getProxyNonce">get</button><br>
+<span>To</span><br><input id="to" value="" /><br>
+<span>Value(Wei)</span><br><input id="value" value="0" /><br>
+<span>Data</span><br><input id="data" value="0x" /><br>
+<button id="sign">Sign</button>
+<button id="tools">Tools</button><br>
+<div id="more">
+    <span>TokenAddress</span><br><input id="tokenAddress" /><br>
+    <span>TokenTo</span><br><input id="tokenTo" /><br>
+    <span>TokenValue</span><br><input id="tokenValue" value="0" /><br>
+    <button id="sendToken">SendToken</button>
+</div>
 <span id="signRecord"></span><br>
 <span>Signatures (Ensure that the corresponding addresses are in ascending order)</span><br>
 <div id="signatures">
@@ -28,65 +27,64 @@
     <button id="execute2">Execute By RawTx</button>
 </div>
 <textarea id="txn" rows="5" cols="50"></textarea><br>
-<input id="rpc"><br>
-<button id="submit1">Submit(SignedTx)</button>
-<button id="submit2">Submit(RawTx)</button>
+<span>RPC</span><br><input id="rpc"><br>
+<span>SimulateURL</span><br><input id="simulateUrl"><br>
+<button id="submit1">SubmitSignedTx</button>
+<button id="submit2">SubmitRawTx</button>
+<button id="simulate">Simulate</button>
 <button id="qrcode">QRcode</button>
-<button id="copy">Copy</button>
-<button id="clear">Clear</button>
+<div id="result"></div>
 <div id="img"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@latest/dist/umd/index.min.js"></script>
 <script type="module">
-    document.head.append(Object.assign(document.createElement('style'), { textContent: `input{width: 425px;margin:3px 0} button{margin:3px 0};` }))
+    document.head.append(Object.assign(document.createElement('style'), { textContent: `input{width: 425px;margin:3px 0} button{margin:3px 0} #more{display:none} #result{overflow-wrap:break-word}` }))
     import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js'
     const global = {}
     const BUF = _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16)))
     const IDV = (id, v) => v === void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v)
     const IDT = (id, t) => t === void 0 ? document.getElementById(id).innerText : (document.getElementById(id).innerText = t)
     const CLK = (id, func) => document.getElementById(id).onclick = func
-    const ZRO = "0x0000000000000000000000000000000000000000"
-    const infuraId = "3fe9a51815de471c89a3a785796df184"
-    const SafeProxyFactory = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2"
-    const SafeL2 = "0x3E5c63644E683549055b9Be8653de26E0B4CD36E"
-    const FallbackHandler = "0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4"
-    const ABI = ["function setup(address[],uint256,address,bytes,address,address,uint256,address)",
-        "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
-        "function createProxyWithNonce(address,bytes,uint256)"]
-    const rpc = "https://neoxt4seed1.ngd.network"
+    const HEX = (_) => "0x" + _.toString(16)
+    const [infuraId, projectId] = ["3fe9a51815de471c89a3a785796df184", "8d4b65a403204449b830fe65ce9648a7"]
+    const [SafeProxyFactory, SafeL2, FallbackHandler, ZRO] = ["0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2", "0x3E5c63644E683549055b9Be8653de26E0B4CD36E", "0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4", ethers.ZeroAddress]
     const proxy_creation_code = "0x608060405234801561001057600080fd5b506040516101e63803806101e68339818101604052602081101561003357600080fd5b8101908080519060200190929190505050600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1614156100ca576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260228152602001806101c46022913960400191505060405180910390fd5b806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505060ab806101196000396000f3fe608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea2646970667358221220d1429297349653a4918076d650332de1a1068c5f3e07c5c82360c277770b955264736f6c63430007060033496e76616c69642073696e676c65746f6e20616464726573732070726f7669646564"
+    const ABI = ["function setup(address[],uint256,address,bytes,address,address,uint256,address)", "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)", "function createProxyWithNonce(address,bytes,uint256)", "function transfer(address,uint256)", "function nonce() view returns (uint256)"]
+    const [rpc, simulateUrl] = ["https://neoxt4seed1.ngd.network", "https://eth-sepolia.g.alchemy.com/v2/WvFtpDoitdcFvITGGBk_BHN9eWqgonWS"]
     const initializer = () => BUF(new ethers.Interface(ABI).encodeFunctionData('setup', [IDV("owners").split(","), IDV("threshold"), ZRO, "0x", FallbackHandler, ZRO, 0, ZRO]))
-    const calc_proxy_address = () => "0x" + keccak256(new Uint8Array([
+    const calc_proxy_address = () => "0x" + ethers.keccak256(new Uint8Array([
         BUF("ff"), BUF(SafeProxyFactory),
-        BUF(keccak256(BUF(ethers.solidityPacked(["bytes32", "uint256"], ["0x" + keccak256(initializer()), BigInt(IDV("salt"))])))),
-        BUF(keccak256(BUF(ethers.solidityPacked(["bytes", "uint256"], [proxy_creation_code, BigInt(SafeL2)]))))
+        BUF(ethers.keccak256(BUF(ethers.solidityPacked(["bytes32", "uint256"], [ethers.keccak256(initializer()), BigInt(IDV("salt"))])))),
+        BUF(ethers.keccak256(BUF(ethers.solidityPacked(["bytes", "uint256"], [proxy_creation_code, BigInt(SafeL2)]))))
     ].reduce((a, v) => a.concat(...v), []))).slice(-40)
     const connect = (w3) => Promise.resolve(global.instance).then(async (I) => I ? I : (global.instance = await w3.connect())).then((I) => {
-        I.on("accountsChanged", ([_]) => Promise.resolve(IDT("currentAddress", _ ?? "")).then(_ => _ ? global.provider.getSigner() : void 0).then(_ => global.signer = _))
+        I.on("accountsChanged", ([_]) => Promise.resolve(global.address = IDT("currentAddress", _ ?? "")).then(_ => _ ? global.provider.getSigner() : void 0).then(_ => global.signer = _))
         I.on("chainChanged", _ => window.location.reload())
         I.on("disconnect", _ => IDT("currentAddress", ""))
         return (global.provider = new ethers.BrowserProvider(I)).getSigner()
-    }).then((s) => (global.signer = s).getAddress()).then(_ => IDV("owners", IDT("currentAddress", _))).catch(console.log)
+    }).then((s) => (global.signer = s).getAddress()).then(_ => global.address = IDV("owners", IDT("currentAddress", _))).catch(console.log)
     document.addEventListener("DOMContentLoaded", () => {
-        const web3Modal = new window.Web3Modal.default({ cacheProvider: true, subscribeProvider: true, providerOptions: { walletconnect: { package: WalletConnectProvider.default, options: { infuraId } } } })
+        ["rpc", "simulateUrl"].forEach((_) => IDV(_, eval(_)))
+        const web3Modal = new window.Web3Modal.default({ cacheProvider: true, subscribeProvider: true, providerOptions: { walletconnect: { package: WalletConnectProvider.default, options: { infuraId, projectId } } } })
         if (web3Modal.cachedProvider) connect(web3Modal)
-        IDV("rpc", rpc)
         CLK("connectWallet", () => connect(web3Modal))
         CLK("calcAddress", () => IDT("proxyAddress", "ProxyAddress: " + calc_proxy_address()))
         CLK("create1", () => new ethers.Contract(SafeProxyFactory, ABI, global.signer)['createProxyWithNonce'](SafeL2, initializer(), BigInt(IDV("salt"))).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("create2", () => IDV("txn", ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized))
-        CLK("getProxyNonce", () => global.provider.getTransactionCount(calc_proxy_address()).then(_ => IDV("proxyNonce", _)).catch(console.log))
-        CLK("signTx", async () => global.signer.signTypedData({ chainId: (await global.provider.getNetwork()).chainId, verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
+        CLK("getProxyNonce", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer).nonce().then(_ => alert("nonce: " + IDV("proxyNonce", _))).catch(() => IDV("proxyNonce", -1)))
+        CLK("sign", async () => global.signer.signTypedData({ chainId: (await global.provider.getNetwork()).chainId, verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
+        CLK("tools", () => document.getElementById("more").style.display = document.getElementById("more").style.display === 'unset' ? 'none' : 'unset')
+        CLK("sendToken", async () => (IDV("to", IDV("tokenAddress")), IDV("data", new ethers.Interface(ABI).encodeFunctionData('transfer', [IDV("tokenTo"), BigInt(IDV("tokenValue"))]))))
         CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
         CLK("submit1", () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
         CLK("submit2", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => global.signer.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
+        CLK("simulate", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(async ({ from, to, data, value }) => fetch(IDV("simulateUrl"), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "alchemy_simulateAssetChanges", params: [{ to, data, value: "0x" + value.toString(16), from: from ?? global.address }] }) }))
+            .then(response => response.json()).then(({ result, error }) => error ? alert(error) : IDT("result", JSON.stringify(result)))
+            .catch(error => console.error('Error:', error)))
         CLK("qrcode", () => (document.getElementById("img").innerHTML = "") || (IDV("txn").match(new RegExp(`.{1,2048}`, 'g')) || []).forEach(_ => document.getElementById("img").appendChild(Object.assign(document.createElement('div'), { innerHTML: (qr => (qr.addData(_), qr.make(), qr.createImgTag(5, 5)))(qrcode(0, 'M')) }))))
-        CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
-        CLK("clear", () => (IDV("txn", ""), document.getElementById("img").innerHTML = ""))
     })
     document.getElementById("threshold").addEventListener('input', (e) => ((v) => v > 0 && (new Array(...document.querySelectorAll('div#signatures input')).forEach(_ => (_.nextElementSibling.remove(), _.remove())), new Array(v).fill(0).forEach(() => ["input", "br"].forEach(_ => document.getElementById("execute1").insertAdjacentElement("beforebegin", document.createElement(_))))))(Number(e.target.value)))
 </script>
