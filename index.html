@@ -6,10 +6,10 @@
 <input id="threshold" value="1" type="number" /><br>
 <span>SaltNonce(unit256)</span><br>
 <input id="salt" value="0" type="number" /><br>
-<span id="proxyAddress">Proxy Address: </span><br>
 <button id="calcAddress">Calculate ProxyAddress</button>
 <button id="create1">Create By Wallet</button>
 <button id="create2">Create By RawTx</button><br>
+<span id="proxyAddress"></span><br>
 <span>ProxyNonce</span><br>
 <input id="proxyNonce" value="0" type="number" />
 <button id="getProxyNonce">get</button><br>
@@ -75,7 +75,7 @@
         if (web3Modal.cachedProvider) connect(web3Modal)
         IDV("rpc", rpc)
         CLK("connectWallet", () => connect(web3Modal))
-        CLK("calcAddress", () => IDT("proxyAddress", "Proxy Address: " + calc_proxy_address()))
+        CLK("calcAddress", () => IDT("proxyAddress", "ProxyAddress: " + calc_proxy_address()))
         CLK("create1", () => new ethers.Contract(SafeProxyFactory, ABI, global.signer)['createProxyWithNonce'](SafeL2, initializer(), BigInt(IDV("salt"))).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("create2", () => IDV("txn", ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized))
         CLK("getProxyNonce", () => global.provider.getTransactionCount(calc_proxy_address()).then(_ => IDV("proxyNonce", _)).catch(console.log))
