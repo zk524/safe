@@ -35,19 +35,22 @@
 <input id="rpc"><br>
 <button id="submit1">Submit(SignedTx)</button>
 <button id="submit2">Submit(RawTx)</button>
+<button id="qrcode">QRcode</button>
 <button id="copy">Copy</button>
 <button id="clear">Clear</button>
+<div id="img"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@latest/dist/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@latest/dist/umd/index.min.js"></script>
 <script type="module">
     ((s) => (s.textContent = `input{width: 425px;margin:3px 0} button{margin:3px 0};`, document.head.append(s)))(document.createElement('style'))
     import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js'
     const global = {}
     const BUF = _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16)))
-    const IDV = (id, v) => v == void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v)
-    const IDT = (id, t) => t == void 0 ? document.getElementById(id).innerText : (document.getElementById(id).innerText = t)
+    const IDV = (id, v) => v === void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v)
+    const IDT = (id, t) => t === void 0 ? document.getElementById(id).innerText : (document.getElementById(id).innerText = t)
     const CLK = (id, func) => document.getElementById(id).onclick = func
     const ZRO = "0x0000000000000000000000000000000000000000"
     const infuraId = "3fe9a51815de471c89a3a785796df184"
@@ -85,9 +88,10 @@
         CLK("sigDel", () => (document.getElementById("signatures").children.length > 6) && [0, 0].forEach(_ => document.getElementById("sigAdd").previousElementSibling.remove()))
         CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
-        CLK("submit1", () => () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
+        CLK("submit1", () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
         CLK("submit2", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => global.signer.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
+        CLK("qrcode", () => document.getElementById('img').innerHTML = (qr => (qr.addData(IDV("txn")), qr.make(), qr.createImgTag(5, 4)))(qrcode(0, 'L')))
         CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
-        CLK("clear", () => (IDV("txn", "")))
+        CLK("clear", () => (IDV("txn", ""), document.getElementById("img").innerHTML = ""))
     })
 </script>
