@@ -90,7 +90,7 @@
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
         CLK("submit1", () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
         CLK("submit2", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => global.signer.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
-        CLK("qrcode", () => document.getElementById('img').innerHTML = (qr => (qr.addData(IDV("txn")), qr.make(), qr.createImgTag(5, 4)))(qrcode(0, 'L')))
+        CLK("qrcode", () => document.getElementById('img').innerHTML = (qr => (qr.addData(IDV("txn")), qr.make(), qr.createImgTag(5, 0)))(qrcode(0, 'L')))
         CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
         CLK("clear", () => (IDV("txn", ""), document.getElementById("img").innerHTML = ""))
     })
