@@ -13,13 +13,14 @@
 <span>ChainId</span><br>
 <input id="chainId" value="12227332" type="number" /><br>
 <span>ProxyNonce</span><br>
-<input id="proxyNonce" value="0" type="number" /><br>
+<input id="proxyNonce" value="0" type="number" />
+<button id="getProxyNonce">get</button><br>
 <span>To</span><br>
 <input id="to" value="" /><br>
 <span>Value(Wei)</span><br>
 <input id="value" value="0" /><br>
 <span>Data</span><br>
-<input id="data" /><br>
+<input id="data" value="0x" /><br>
 <button id="signTx">Send(Sign)</button><br>
 <span id="signRecord"></span><br>
 <span>Signatures (Ensure that the corresponding addresses are in ascending order)</span><br>
@@ -45,8 +46,9 @@
     import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js'
     const global = {}
     const BUF = _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16)))
+    const IDV = (id, v) => v == void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v)
+    const IDT = (id, t) => t == void 0 ? document.getElementById(id).innerText : (document.getElementById(id).innerText = t)
     const CLK = (id, func) => document.getElementById(id).onclick = func
-    const IDV = _ => document.getElementById(_).value
     const ZRO = "0x0000000000000000000000000000000000000000"
     const infuraId = "3fe9a51815de471c89a3a785796df184"
     const SafeProxyFactory = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2"
@@ -64,27 +66,28 @@
         BUF(keccak256(BUF(ethers.solidityPacked(["bytes", "uint256"], [proxy_creation_code, BigInt(SafeL2)]))))
     ].reduce((a, v) => a.concat(...v), []))).slice(-40)
     const connect = (w3) => Promise.resolve(global.instance).then(async (I) => I ? I : (global.instance = await w3.connect())).then((I) => {
-        I.on("accountsChanged", ([_]) => (document.getElementById("currentAddress").innerText = _ ?? ""))
+        I.on("accountsChanged", ([_]) => IDT("currentAddress", _ ?? ""))
         I.on("chainChanged", _ => window.location.reload())
-        I.on("disconnect", _ => (document.getElementById("currentAddress").innerText = ""))
-        return new ethers.BrowserProvider(I).getSigner()
-    }).then((s) => (global.signer = s).getAddress()).then((_) => (document.getElementById("owners").value = document.getElementById("currentAddress").innerText = _)).catch(console.log)
+        I.on("disconnect", _ => IDT("currentAddress", ""))
+        return (global.provider = new ethers.BrowserProvider(I)).getSigner()
+    }).then((s) => (global.signer = s).getAddress()).then(_ => IDV("owners", IDT("currentAddress", _))).catch(console.log)
     document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("rpc").value = rpc
         const web3Modal = new window.Web3Modal.default({ cacheProvider: true, subscribeProvider: true, providerOptions: { walletconnect: { package: WalletConnectProvider.default, options: { infuraId } } } })
         if (web3Modal.cachedProvider) connect(web3Modal)
+        IDV("rpc", rpc)
         CLK("connectWallet", () => connect(web3Modal))
-        CLK("calcAddress", () => (document.getElementById("proxyAddress").innerText = "Proxy Address: " + calc_proxy_address()))
+        CLK("calcAddress", () => IDT("proxyAddress", "Proxy Address: " + calc_proxy_address()))
         CLK("create1", () => new ethers.Contract(SafeProxyFactory, ABI, global.signer)['createProxyWithNonce'](SafeL2, initializer(), BigInt(IDV("salt"))).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
-        CLK("create2", () => document.getElementById("txn").value = ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized)
-        CLK("signTx", () => global.signer.signTypedData({ chainId: IDV("chainId"), verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: "0x", operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
+        CLK("create2", () => IDV("txn", ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized))
+        CLK("getProxyNonce", () => global.provider.getTransactionCount(calc_proxy_address()).then(_ => IDV("proxyNonce", _)).catch(console.log))
+        CLK("signTx", () => global.signer.signTypedData({ chainId: IDV("chainId"), verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
         CLK("sigAdd", () => (document.getElementById("signatures").children.length / 2 - Number(IDV("threshold")) < 2) && ["input", "br"].forEach((e) => document.getElementById("sigAdd").insertAdjacentElement("beforebegin", document.createElement(e))))
         CLK("sigDel", () => (document.getElementById("signatures").children.length > 6) && [0, 0].forEach(_ => document.getElementById("sigAdd").previousElementSibling.remove()))
-        CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), "0x", 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
-        CLK("execute2", () => document.getElementById("txn").value = ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), "0x", 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized)
-        CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
-        CLK("clear", () => (document.getElementById("txn").value = ""))
+        CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
+        CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
         CLK("submit1", () => () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
         CLK("submit2", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => global.signer.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
+        CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
+        CLK("clear", () => (IDV("txn", "")))
     })
 </script>
