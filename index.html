@@ -10,8 +10,6 @@
 <button id="calcAddress">Calculate ProxyAddress</button>
 <button id="create1">Create By Wallet</button>
 <button id="create2">Create By RawTx</button><br>
-<span>ChainId</span><br>
-<input id="chainId" value="12227332" type="number" /><br>
 <span>ProxyNonce</span><br>
 <input id="proxyNonce" value="0" type="number" />
 <button id="getProxyNonce">get</button><br>
@@ -43,7 +41,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@latest/dist/umd/index.min.js"></script>
 <script type="module">
-    ((s) => (s.textContent = `input{width: 425px;margin:3px 0} button{margin:3px 0};`, document.head.append(s)))(document.createElement('style'))
+    document.head.append(Object.assign(document.createElement('style'), { textContent: `input{width: 425px;margin:3px 0} button{margin:3px 0};` }))
     import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js'
     const global = {}
     const BUF = _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16)))
@@ -81,12 +79,12 @@
         CLK("create1", () => new ethers.Contract(SafeProxyFactory, ABI, global.signer)['createProxyWithNonce'](SafeL2, initializer(), BigInt(IDV("salt"))).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("create2", () => IDV("txn", ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized))
         CLK("getProxyNonce", () => global.provider.getTransactionCount(calc_proxy_address()).then(_ => IDV("proxyNonce", _)).catch(console.log))
-        CLK("signTx", () => global.signer.signTypedData({ chainId: IDV("chainId"), verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
+        CLK("signTx", async () => global.signer.signTypedData({ chainId: (await global.provider.getNetwork()).chainId, verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
         CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
         CLK("submit1", () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
         CLK("submit2", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => global.signer.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
-        CLK("qrcode", () => document.getElementById('img').innerHTML = (qr => (qr.addData(IDV("txn")), qr.make(), qr.createImgTag(5, 0)))(qrcode(0, 'L')))
+        CLK("qrcode", () => (document.getElementById("img").innerHTML = "") || (IDV("txn").match(new RegExp(`.{1,2048}`, 'g')) || []).forEach(_ => document.getElementById("img").appendChild(Object.assign(document.createElement('div'), { innerHTML: (qr => (qr.addData(_), qr.make(), qr.createImgTag(5, 5)))(qrcode(0, 'M')) }))))
         CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
         CLK("clear", () => (IDV("txn", ""), document.getElementById("img").innerHTML = ""))
     })
