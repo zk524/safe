@@ -26,8 +26,6 @@
 <span>Signatures (Ensure that the corresponding addresses are in ascending order)</span><br>
 <div id="signatures">
     <input /><br>
-    <button id="sigAdd">+</button>
-    <button id="sigDel">-</button>
     <button id="execute1">Execute By Wallet</button>
     <button id="execute2">Execute By RawTx</button>
 </div>
@@ -84,8 +82,6 @@
         CLK("create2", () => IDV("txn", ethers.Transaction.from({ to: SafeProxyFactory, data: new ethers.Interface(ABI).encodeFunctionData('createProxyWithNonce', [SafeL2, initializer(), BigInt(IDV("salt"))]) }).unsignedSerialized))
         CLK("getProxyNonce", () => global.provider.getTransactionCount(calc_proxy_address()).then(_ => IDV("proxyNonce", _)).catch(console.log))
         CLK("signTx", () => global.signer.signTypedData({ chainId: IDV("chainId"), verifyingContract: calc_proxy_address() }, { SafeTx: ["to", "value", "data", "operation", "safeTxGas", "baseGas", "gasPrice", "gasToken", "refundReceiver", "nonce"].map((name, i) => ({ name, type: ["address", "uint256", "bytes", "uint8", "uint256", "uint256", "uint256", "address", "address", "uint256"][i] })) }, { to: IDV("to"), value: IDV("value"), data: IDV("data"), operation: 0, safeTxGas: 0, baseGas: 0, gasPrice: 0, gasToken: ZRO, refundReceiver: ZRO, nonce: IDV("proxyNonce") }).then(_ => ((rec) => (rec.innerText = "signature: " + _.slice(2), rec.style.cssText = 'color:red;font-size:12px;'))(document.getElementById("signRecord"))).catch(console.log))
-        CLK("sigAdd", () => (document.getElementById("signatures").children.length / 2 - Number(IDV("threshold")) < 2) && ["input", "br"].forEach((e) => document.getElementById("sigAdd").insertAdjacentElement("beforebegin", document.createElement(e))))
-        CLK("sigDel", () => (document.getElementById("signatures").children.length > 6) && [0, 0].forEach(_ => document.getElementById("sigAdd").previousElementSibling.remove()))
         CLK("execute1", () => new ethers.Contract(calc_proxy_address(), ABI, global.signer)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calc_proxy_address(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + new Array(...document.querySelectorAll('div#signatures input')).map(v => v.value).join("")]) }).unsignedSerialized))
         CLK("submit1", () => new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
@@ -94,4 +90,5 @@
         CLK("copy", () => navigator.clipboard.writeText(IDV("txn")).then(_ => alert(`Copied`)).catch(console.log))
         CLK("clear", () => (IDV("txn", ""), document.getElementById("img").innerHTML = ""))
     })
+    document.getElementById("threshold").addEventListener('input', (e) => ((v) => v > 0 && (new Array(...document.querySelectorAll('div#signatures input')).forEach(_ => (_.nextElementSibling.remove(), _.remove())), new Array(v).fill(0).forEach(() => ["input", "br"].forEach(_ => document.getElementById("execute1").insertAdjacentElement("beforebegin", document.createElement(_))))))(Number(e.target.value)))
 </script>
