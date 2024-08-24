@@ -66,7 +66,7 @@
         BUF(keccak256(BUF(ethers.solidityPacked(["bytes", "uint256"], [proxy_creation_code, BigInt(SafeL2)]))))
     ].reduce((a, v) => a.concat(...v), []))).slice(-40)
     const connect = (w3) => Promise.resolve(global.instance).then(async (I) => I ? I : (global.instance = await w3.connect())).then((I) => {
-        I.on("accountsChanged", ([_]) => IDT("currentAddress", _ ?? ""))
+        I.on("accountsChanged", ([_]) => Promise.resolve(IDT("currentAddress", _ ?? "")).then(_ => _ ? global.provider.getSigner() : void 0).then(_ => global.signer = _))
         I.on("chainChanged", _ => window.location.reload())
         I.on("disconnect", _ => IDT("currentAddress", ""))
         return (global.provider = new ethers.BrowserProvider(I)).getSigner()
