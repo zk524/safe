@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <w3m-core-button></w3m-core-button><br><br>
 <span>Owners (',')</span><br><input id="owners" /><br>
 <span>Threshold</span><br><input id="threshold" value="1" type="number" min="1" /><br>
@@ -37,9 +38,9 @@
 <button id="qrcode">QRcode</button>
 <div id="result"></div>
 <div id="img"></div>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script type="module">
-    document.head.append(Object.assign(document.createElement('style'), { textContent: `div,input,span,textarea{overflow-wrap:break-word;width:512px;margin:3px 0} button{margin:3px 0} #more{display:none}` }))
+    document.head.append(Object.assign(document.createElement('style'), { textContent: `div,input,span,textarea{overflow-wrap:break-word;width:512px;max-width:100%;margin:3px 0} button{margin:3px 0} #more{display:none}` }))
     Object.assign(window, {
         BUF: _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16))),
         IDV: (id, v) => v === void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v),
