@@ -24,16 +24,15 @@
 <div id="signatures">
     <span>Signatures</span><br>
     <div id="signRecord"></div>
-    <input /><br><button id="execute">Execute</button>
+    <input id="sig0" /><br><button id="execute">Execute</button>
 </div>
-<script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script type="module">
     document.head.append(Object.assign(document.createElement('style'), { textContent: `div,input,span{overflow-wrap:break-word;width:512px;max-width:100%;margin:3px 0} button{margin:3px 0} #more{display:none}` }))
     Object.assign(window, {
         BUF: _ => new Uint8Array((_.startsWith("0x") ? _.slice(2) : _).match(/.{1,2}/g).map(_ => parseInt(_, 16))),
         IDV: (id, v) => v === void 0 ? document.getElementById(id).value : (document.getElementById(id).value = v),
         IDT: (id, t) => t === void 0 ? document.getElementById(id).innerText : (document.getElementById(id).innerText = t),
-        CLK: (id, func) => document.getElementById(id).onclick = func,
+        CLK: (id, f) => document.getElementById(id).onclick = f,
         HEX: (_) => "0x" + _.toString(16),
         Buffer: {}, process: { env: {} }, global: {}
     })
