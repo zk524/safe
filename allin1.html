@@ -41,6 +41,7 @@
 <span>SimulateURL</span><br><input id="simulateUrl"><br>
 <button id="submit1">Submit By Wallet</button>
 <button id="submit2">Submit By RPC</button>
+<button id="signTx">Sign RawTx</button>
 <button id="simulate">Simulate</button>
 <button id="qrcode">QRcode</button>
 <div id="result"></div>
@@ -99,7 +100,8 @@
         CLK("execute1", () => new ethers.Contract(calcProxyAddress(), ABI, WagmiCore)["execTransaction"](IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + sortSigs().join("")).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
         CLK("execute2", () => IDV("txn", ethers.Transaction.from({ to: calcProxyAddress(), data: new ethers.Interface(ABI).encodeFunctionData('execTransaction', [IDV("to"), IDV("value"), IDV("data"), 0, 0, 0, 0, ZRO, ZRO, "0x" + sortSigs().join("")]) }).unsignedSerialized))
         CLK("submit1", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ to, data, value }) => WagmiCore.sendTransaction({ to, data, value })).then(tx => (prompt("Transaction sent: ", tx.hash), console.log(tx.hash))).catch(console.log))
-        CLK("submit2", () => comfrom("Broadcast this signed transation?") && new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
+        CLK("submit2", () => confirm("Broadcast this signed transation?") && new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
+        CLK("signTx", () => (({ to, value, data }) => Promise.all([global.signer.provider.getFeeData(), global.signer.provider.getNetwork(), global.signer.getNonce()]).then(([{ maxFeePerGas, maxPriorityFeePerGas }, { chainId }, nonce]) => global.signer.estimateGas(ethers.Transaction.from({ to, value, data, chainId })).then((gasLimit) => ethers.Transaction.from({ to, value, data, gasLimit, maxFeePerGas, maxPriorityFeePerGas, chainId, nonce }))).then((rawTx) => global.signer.provider.send("eth_sign", [WagmiCore.getAccount().address, ethers.keccak256(rawTx.unsignedSerialized)]).then((_) => (rawTx.signature = _, IDV("txn", rawTx.serialized)))))(ethers.Transaction.from(IDV("txn"))))
         CLK("simulate", () => Promise.resolve(ethers.Transaction.from(IDV("txn"))).then(({ from, to, data, value }) => fetch(IDV("simulateUrl"), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "alchemy_simulateAssetChanges", params: [{ to, data, value: "0x" + value.toString(16), from: from ?? WagmiCore.getAccount().address }] }) })).then(response => response.json()).then(({ result, error }) => error ? alert(error) : IDT("result", JSON.stringify(result))).catch(error => console.error('Error:', error)))
         CLK("qrcode", () => (document.getElementById("img").innerHTML = "") || (IDV("txn").match(new RegExp(`.{1,2048}`, 'g')) || []).forEach(_ => document.getElementById("img").appendChild(Object.assign(document.createElement('div'), { innerHTML: (qr => (qr.addData(_), qr.make(), qr.createImgTag(5, 5)))(qrcode(0, 'M')) }))))
         CLK("import", () => document.getElementById('file').click())
