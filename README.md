@@ -14,3 +14,6 @@
 
 - 不管三七二十一一锅全端版
 >https://zk524.github.io/safe/allin1
+
+- 非常迷你的多功能离线钱包(支持walletconnect-v2)
+>https://zk524.github.io/safe/wallet
