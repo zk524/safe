@@ -17,6 +17,7 @@
 <button id="decode">Decode</button>
 <button id="sign">Sign</button>
 <button id="send">Send</button>
+<button id="edit">Edit</button>
 <button id="offline">Offline</button>
 <div id="result"></div>
 <div id="setting">
@@ -71,7 +72,7 @@
                     break
             }
         })
-        DGA("import", 'submit', (e) => (e.preventDefault(), new Promise(_ => _(ethers.getAddress(IDV("account")))).then((address) => (Object.assign(global, { wallet: { address } }), IDT("address", address))).catch(_ => new Promise(_ => _(new ethers.Wallet(IDV("account")))).then((wallet) => Object.assign(global, { wallet })).then(({ wallet }) => (navigator.credentials.store(new PasswordCredential({ id: wallet.address, password: IDV("account") })), IDT("address", wallet.address))).catch(() => alert("INVALID KEY OR ADDRESS")))))
+        DGA("import", 'submit', (e) => (e.preventDefault(), new Promise(_ => _(ethers.getAddress(IDV("account")))).then((address) => (Object.assign(global, { wallet: { address } }), IDT("address", address))).catch(_ => new Promise(_ => _(new ethers.Wallet(IDV("account")))).then((wallet) => Object.assign(global, { wallet })).then(({ wallet }) => (navigator.credentials.store(new PasswordCredential({ id: wallet.address, password: IDV("account") })), IDT("address", ethers.getAddress(wallet.address)))).catch(() => alert("INVALID KEY OR ADDRESS")))))
         DGA("connect", () => IDV("uri") && web3wallet.pair({ uri: IDV("uri") }))
         DGA("approve", () => (({ optionalNamespaces: { eip155: a }, requiredNamespaces: { eip155: b } }) => ((chains) => web3wallet.approveSession({ id: global.id, sessionProperties: {}, namespaces: { eip155: { ...(a || b), chains, accounts: chains.map((_) => `${_}:${IDT("address") || ZRO}`) } } }).then(() => (TGL("connect", TGL("approve", true)), IDV("uri", ""))))([...new Set((a?.chains || []).concat(b?.chains || []))]))(global.params))
         DGA("disconnect", () => Promise.all(Object.keys(web3wallet.getActiveSessions()).map((topic) => web3wallet.disconnectSession({ topic, reason: { code: 1, message: "User disconnected" } }))).then(() => TGL("connect", !TGL("approve", TGL("disconnect", true)))))
@@ -79,6 +80,7 @@
         DGA("decode", () => IDT("result", JSON.stringify(ethers.Transaction.from(IDV("txn")))))
         DGA("sign", () => Promise.resolve(new ethers.JsonRpcProvider(IDV("rpc"))).then((provider) => (({ to, value, data }) => (IDV("chainId") ? Promise.resolve(ethers.Transaction.from({ to, value, data, gasLimit: IDV("gasLimit"), maxFeePerGas: IDV("maxFeePerGas"), maxPriorityFeePerGas: IDV("maxPriorityFeePerGas"), chainId: IDV("chainId"), nonce: IDV("nonce") })) : Promise.all([provider.provider.getFeeData(), provider.provider.getNetwork(), provider.getTransactionCount(global.wallet.address)]).then(([{ maxFeePerGas, maxPriorityFeePerGas }, { chainId }, nonce]) => provider.estimateGas(ethers.Transaction.from({ to, value, data, chainId })).then((gasLimit) => ethers.Transaction.from({ to, value, data, gasLimit, maxFeePerGas, maxPriorityFeePerGas, chainId, nonce })))).then((rawTx) => ([global.wallet.signingKey.sign(ethers.keccak256(rawTx.unsignedSerialized)), rawTx])).then(([_, rawTx]) => (rawTx.signature = _, IDV("txn", rawTx.serialized))))(ethers.Transaction.from(IDV("txn") || { to: IDV("to"), value: IDV("value"), data: IDV("data") }))))
         DGA("send", () => confirm("Broadcast this signed transation?") && new ethers.JsonRpcProvider(IDV("rpc")).send('eth_sendRawTransaction', [IDV("txn")]).then(_ => confirm(_) && console.log(_)))
+        DGA("edit", () => (DID("setting").style.display = 'unset', Object.entries(ethers.Transaction.from(IDV("txn")).toJSON()).forEach(([k, v]) => DID(k) && IDV(k, v))))
         DGA("offline", () => DID("setting").style.display = DID("setting").style.display === 'unset' ? 'none' : 'unset')
     })
 </script>
