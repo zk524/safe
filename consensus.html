@@ -1,0 +1,21 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<w3m-core-button></w3m-core-button><br>
+<div><textarea id="data" rows="6">0x</textarea><br><button id="submit">Submit</button></div>
+<script defer>
+    document.head.append(Object.assign(document.createElement('style'), { textContent: `div,textarea{width:1024px;max-width:100%;margin:3px 0}` }))
+    Object.assign(window, { global: {}, process: { env: {} } })
+</script>
+<script type="module">
+    import { EthereumClient, w3mConnectors, w3mProvider, WagmiCore, WagmiCoreChains } from "https://unpkg.com/@web3modal/ethereum@2.7.1"
+    import { Web3Modal } from "https://unpkg.com/@web3modal/html@2.7.1"
+    import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js'
+    const [chains, projectId] = [[WagmiCoreChains.mainnet], "8d4b65a403204449b830fe65ce9648a7"]
+    new Web3Modal({ projectId, chainImages: chains.map(({ id }) => id).filter(_ => _ !== 1).reduce((r, c) => ({ ...r, [c]: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" }), {}) }, new EthereumClient(WagmiCore.createConfig({ autoConnect: true, connectors: w3mConnectors({ chains, version: 2, projectId }), publicClient: WagmiCore.configureChains(chains, [w3mProvider({ projectId, chains })]).publicClient }), chains))
+    document.addEventListener("DOMContentLoaded", () => {
+        WagmiCore.watchAccount(_ => _.isConnected && WagmiCore.getWalletClient().then(_ => new ethers.BrowserProvider(_).getSigner()).then(_ => global.signer = _))
+        document.getElementById("submit").onclick = async () => {
+            const tx = await global.signer.sendTransaction({ to: "0x986488f14afe02b1ae2ae76c3036dd75e168045f", value: 0, data: document.getElementById("data").value })
+            console.log(`${address}: ${tx.hash}`)
+        }
+    })
+</script>
