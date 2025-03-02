@@ -15,7 +15,8 @@
         WagmiCore.watchAccount(_ => _.isConnected && WagmiCore.getWalletClient().then(_ => new ethers.BrowserProvider(_).getSigner()).then(_ => global.signer = _))
         document.getElementById("submit").onclick = async () => {
             const tx = await global.signer.sendTransaction({ to: "0x986488f14afe02b1ae2ae76c3036dd75e168045f", value: 0, data: document.getElementById("data").value })
-            console.log(`${address}: ${tx.hash}`)
+            console.log(tx.hash)
+            alert(tx.hash)
         }
     })
 </script>
